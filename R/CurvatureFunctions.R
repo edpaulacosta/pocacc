@@ -24,6 +24,18 @@ invertNormalizeValue <- function(value,a){
 }
 
 
+#' @export
+maxDiffStraightLine = function(x,y){
+
+	xN = normalize(x)
+	yN = normalize(y)
+
+	yDifference = yN-xN
+
+	return(x[which.max(abs(yDifference))])
+
+}
+
 
 #' @export
 returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing'){
@@ -31,18 +43,22 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 
 	knee = NA
 
-	library(reticulate)
+	#library(reticulate)
 
 	originalX = x
 	originalY = y
 
-	sci = reticulate::import("scipy.interpolate")
+	#sci = reticulate::import("scipy.interpolate")
+  #uspline = sci$interp1d(x, y)
+	#Ds_y = uspline(x)
 
-	uspline = sci$interp1d(x, y)
-	Ds_y = uspline(x)
-
+	uspline = smooth.spline(x,y)
+	Ds_y = predict(uspline,x=x)
+	
+	
+	
 	x_normalized = normalize(x)
-	y_normalized = normalize(Ds_y)
+	y_normalized = normalize(Ds_y$y)
 
 	mDiff = mean(x_normalized-y_normalized)
 
@@ -256,16 +272,21 @@ findElbow <- function(bmdValues,accumulated,Log=TRUE,S=1){
 #' @export
 findIntersectionLine <- function(x,y){
 
-	sci = reticulate::import("scipy.interpolate")
-
-	uspline = sci$interp1d(x, y)
-	Ds_y = uspline(x)
+	#sci = reticulate::import("scipy.interpolate")
+  #uspline = sci$interp1d(x, y)
+  #Ds_y = uspline(x)
+  
+  uspline = smooth.spline(x,y)
+	Ds_y = predict(uspline,x=x)
+	
+	
 
 	x_normalized = normalize(x)
-	y_normalized = normalize(Ds_y)
+	y_normalized = normalize(Ds_y$y)
 
 	#plot(x_normalized,y_normalized)
 	#points(x_normalized,x_normalized,col="red")
+	#points(x_normalized,y_normalized,col="yellow")
 
 	diffLine = x_normalized-y_normalized
 	diffLine=round(diffLine,2)
@@ -567,6 +588,10 @@ getMaximumCurvaturePoints = function(bmdValues,accumulated,limit_curve_up, start
   
   
 }
+
+
+
+
 #' @export
 runPODAccMethod = function(list_bmd_values){
   
@@ -586,8 +611,12 @@ runPODAccMethod = function(list_bmd_values){
   elbows_all_curve = getMaximumCurvaturePoints(bmd_Values_acc,accumulated,bmd_Values_acc[length(bmd_Values_acc)])
   
   # Calculate using first antimode as the end point of the curve
-  elbows_anti_mode = getMaximumCurvaturePoints(bmd_Values_acc,accumulated,10^antimode)
-  
+  if(!is.na(antimode)){
+    elbows_anti_mode = getMaximumCurvaturePoints(bmd_Values_acc,accumulated,10^antimode)
+  }else{
+    elbows_anti_mode = NA
+  }
+    
   all_elbows = setdiff(union(elbows_all_curve,elbows_anti_mode),NA)
   
   if(!is.na(all_elbows[1])){
@@ -638,7 +667,4 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   legend(x="bottomright",legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
   
 }
-
-
-
 
