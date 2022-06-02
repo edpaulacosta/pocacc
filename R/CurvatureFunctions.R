@@ -460,7 +460,10 @@ getSmoothedCurve = function(bmdValues,accumulated,limit_curve_up,startPos=1,choi
   if(dfreedom>length(bmdValuesLOG)){
     dfreedom=round(2*(length(bmdValuesLOG)/3))
     
+  }else{
+    dfreedom=min(max(round(length(bmdValuesLOG)/10),20),40)
   }
+  
   
   pp = performSmoothing(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=choiceSmoothing,scam.m=scam.m)
 
@@ -564,9 +567,6 @@ getMaximumCurvaturePoints = function(bmdValues,accumulated,limit_curve_up, start
   
   
 }
-
-
-
 #' @export
 runPODAccMethod = function(list_bmd_values){
   
@@ -580,7 +580,7 @@ runPODAccMethod = function(list_bmd_values){
   accumulated = output[,2]
   
   
-  plot(bmd_Values_acc,accumulated,log="x")
+  #plot(bmd_Values_acc,accumulated,log="x")
   
   # Calculate method for the whole curve first - Needs package scam
   elbows_all_curve = getMaximumCurvaturePoints(bmd_Values_acc,accumulated,bmd_Values_acc[length(bmd_Values_acc)])
@@ -602,18 +602,18 @@ runPODAccMethod = function(list_bmd_values){
     elbow = median(bmdValues[1:2])
   }
   
-
+  
   results = list(podacc=elbow,candidates_podacc=all_elbows,first_mode= 10^firstmode,first_antimode=10^antimode)
   
-
-   return(results)    
+  
+  return(results)    
 }
 
 
 
 #' @export
 plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plot Results",xlab_text = "Dose (mg/kg/day)",ylab_text = "Accumulation"){
-
+  
   # Get accumulation plot values
   output = generateAccumulationValuesFromListBMDValues(list_bmd_values)
   bmd_Values_acc = output[,1]
