@@ -75,18 +75,23 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 	x_difference = x_normalized
 
 	
-	np = reticulate::import("numpy")
-	ss = reticulate::import("scipy.signal")
-
-	YDiff = np$array(y_difference)
-	maxima_indices = ss$argrelextrema(YDiff, np$greater)[[1]]
+	#np = reticulate::import("numpy")
+	#ss = reticulate::import("scipy.signal")
+	#YDiff = np$array(y_difference)
+	#maxima_indices = ss$argrelextrema(YDiff, np$greater)[[1]]
+		
+	
+	maxima_indices = which(diff(sign(diff(y_difference)))==-2)
 	maxima_indices = maxima_indices+1 #account for difference between python and R
+	
+	
 	x_difference_maxima = x_difference[maxima_indices]
 	y_difference_maxima = y_difference[maxima_indices]
 
 
 	# local minima
-	minima_indices = ss$argrelextrema(YDiff, np$less)[[1]]
+	#minima_indices = ss$argrelextrema(YDiff, np$less)[[1]]
+	minima_indices = which(diff(sign(diff(y_difference)))==2)
 	minima_indices = minima_indices+1
 	x_difference_minima = x_difference[minima_indices]
 	y_difference_minima = y_difference[minima_indices]
@@ -667,4 +672,3 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   legend(x="bottomright",legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
   
 }
-
