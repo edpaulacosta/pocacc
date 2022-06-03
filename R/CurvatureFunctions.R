@@ -43,7 +43,7 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 
 	knee = NA
 
-	#library(reticulate)
+	library(reticulate)
 
 	originalX = x
 	originalY = y
@@ -74,8 +74,8 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 	
 	x_difference = x_normalized
 
-	
-	#np = reticulate::import("numpy")
+
+	np = reticulate::import("numpy")
 	#ss = reticulate::import("scipy.signal")
 	#YDiff = np$array(y_difference)
 	#maxima_indices = ss$argrelextrema(YDiff, np$greater)[[1]]
@@ -359,6 +359,9 @@ findIntersectionLine <- function(x,y){
 #' @export
 chooseSmoothing = function(bmdValuesLOG,accumulated){ 
 
+  library(reticulate)
+  np = reticulate::import("numpy")
+  
 	pp=smooth.spline(as.numeric(bmdValuesLOG),as.numeric(accumulated),all.knots=TRUE,df=20)
 	intervalX = np$abs(np$mean(np$diff(bmdValuesLOG)))
 	newBmdValuesLOG = seq(from = min(bmdValuesLOG), to = max(bmdValuesLOG), by = intervalX/10)
