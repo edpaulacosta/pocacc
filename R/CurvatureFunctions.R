@@ -244,7 +244,7 @@ findElbow <- function(bmdValues,accumulated,Log=TRUE,S=1){
 
 
 	if(length(allKnees)==0){
-		tableRes[i,"Elbow"]=NA
+		return(NA)
 	}else{
 
 		# Mapping back to the original function
@@ -297,7 +297,7 @@ findIntersectionLine <- function(x,y){
 	diffLine=round(diffLine,2)
 	
 	diffLine = diffLine[!is.na(diffLine)]
-	
+	#plot(diffLine)
 	
 	
 	if(length(diffLine)==0){
@@ -312,12 +312,25 @@ findIntersectionLine <- function(x,y){
 
 	# Remove zeros and negative values at the beginning
 	# count number of removed values
-	count = 0  
 	flag=TRUE
+	count = 0  
+	if(length(diffLine)>1){
+	  if(diffLine[1]>0){
+	    flag=FALSE
+	  }else{
+	    diffLine=diffLine[-1]
+	    if(diffLine[1]<0){
+	     count = count+1
+	    }
+		}
+	}
+	  
 	while(flag){		
 		if(length(diffLine)>1){
 			diffLine=diffLine[-1]
-			count = count+1
+			if(diffLine[1]<0){
+			  count = count+1
+		  }
 			if(diffLine[1]>0){
 				flag=FALSE
 			}
@@ -339,8 +352,9 @@ findIntersectionLine <- function(x,y){
 	
   	point = diffLine[diffLine<0]
 
+  	# if point == 0, it is the end of the curve.   
   	if(length(point)==0){
-  		posPointFinal = length(diffLine)
+  		posPointFinal = length(x)
   	}else{
   		pointFinal = point[1]
 	  	diffLine[diffLine<0]=rep(-1,length(point))	
@@ -407,6 +421,10 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 
 	np = reticulate::import("numpy")
 
+	if(length(bmdValuesLOG)<10){
+	  choiceSmoothing = "NO"
+	}
+	
 	if(choiceSmoothing==""){
 		choiceSmoothing = chooseSmoothing(bmdValuesLOG,accumulated)
 	}
@@ -416,12 +434,17 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 		intervalX=0.002374724
 	}
 	newBmdValuesLOG = seq(from = min(bmdValuesLOG), to = max(bmdValuesLOG), by = intervalX)
-	
+
+	if(choiceSmoothing=="NO"){
+	  newBmdValuesLOG = bmdValuesLOG
+	}
+		
 	if(choiceSmoothing=="pp"){
 		pp=smooth.spline(as.numeric(bmdValuesLOG),as.numeric(accumulated),all.knots=TRUE,df=dfreedom)	
 		newY = predict(pp,x=newBmdValuesLOG)
 		#plot(pp)
-		#plot(newBmdValuesLOG,newY$y)
+		#plot(newY)
+		#plot(as.numeric(newBmdValuesLOG[,1]),as.numeric(newY$y[,1]))
 		fit = pp
 		accumulated = newY$y
 
@@ -430,8 +453,8 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 
 		#fit=try(scam(accumulated~s(bmdValuesLOG,k=20,bs="mpi",m=2),family=gaussian))
 
-		
 		m=scam.m
+
 		fit=try(scam(accumulated~s(bmdValuesLOG,k=dfreedom,bs="mpi",m=m),family=gaussian(link="identity")))
 		if(length(fit)==1){
 			fit=scam(accumulated~s(bmdValuesLOG,bs="mpi",m=m),family=gaussian(link="identity"))
@@ -452,6 +475,7 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 
 		m=scam.m
 		pp=smooth.spline(as.numeric(bmdValuesLOG),as.numeric(accumulated),all.knots=TRUE,df=dfreedom)	
+		#plot(pp)
 		newY = predict(pp,x=newBmdValuesLOG)
 		fit=try(scam(newY$y~s(newBmdValuesLOG,k=dfreedom,bs="mpi",m=m),family=gaussian(link="identity")))
 		if(length(fit)==1){
@@ -464,8 +488,12 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 		newBmdValuesLOG = newBmdValuesLOG[,1]
 	}
 
-	pp=smooth.spline(as.numeric(newBmdValuesLOG),as.numeric(accumulated),all.knots=TRUE,df=dfreedom)
-
+	if(choiceSmoothing!="NO"){
+  	pp=smooth.spline(as.numeric(newBmdValuesLOG),as.numeric(accumulated),all.knots=TRUE,df=dfreedom)
+	}else{
+	  pp=smooth.spline(as.numeric(newBmdValuesLOG),as.numeric(accumulated),all.knots=TRUE)
+	}
+  	
 	mask = pp$y<1
 	pp$y[mask]=1
 	
@@ -482,83 +510,89 @@ getSmoothedCurve = function(bmdValues,accumulated,limit_curve_up,startPos=1,choi
   bmdValues = bmdValues[startPos:length(bmdValues)]
   accumulated = accumulated[startPos:length(accumulated)]
   
-  #plot(bmdValues,accumulated,log="x")
-  
-  bmdValuesLOG = as.numeric(log(bmdValues,10))
-  
-  if(dfreedom>length(bmdValuesLOG)){
-    dfreedom=round(2*(length(bmdValuesLOG)/3))
-    
+  if(length(bmdValues[bmdValues<=limit_curve_up])<5){
+    return(NA)
   }else{
-    dfreedom=min(max(round(length(bmdValuesLOG)/10),20),40)
-  }
-  
-  
-  pp = performSmoothing(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=choiceSmoothing,scam.m=scam.m)
-
-  #plot(pp)
-  #points(pp$x,pp$y,col="yellow")	
-  #points(log(originalBmdValues,10),originalAccumulated,col="red")
-  #points(originalBmdValues,originalAccumulated,col="red")
-  #plot(originalBmdValues,originalAccumulated,log="x")
-  #points(log(bmdValues,10),accumulated,col="red")
-  #plot(log(bmdValues,10),accumulated,col="red")
-  #plot(bmdValues,accumulated,log="x")
-  
-  mask = pp$x<=log(limit_curve_up,10)
-  pp$x = pp$x[mask]
-  pp$y = pp$y[mask]
-  
-  mask=pp$y<pp$y[1]
-  pp$y[mask] = pp$y[1]
-  
-  ppOriginal = pp
-  
-  # Finding intersection between the initial point and the limited portion of the curve
-  if(length(pp$y)>0){
-    posPointFinal = findIntersectionLine(pp$x,pp$y)
-    firstIntersection = posPointFinal
-    if(posPointFinal!=-1){
-      # Limiting the size of the curve of 5 to look for intersection
-      while(firstIntersection<length(pp$x)&length(pp$x)>5){
-        pp$x = pp$x[1:(length(pp$x)-1)]
-        pp$y = pp$y[1:(length(pp$y)-1)]
-        posPointFinal = findIntersectionLine(pp$x,pp$y)
-        if(posPointFinal>firstIntersection){
-          firstIntersection = posPointFinal
-        }
-        #abline(v=pp$x[length(pp$x)],col="red")
-        #abline(v=pp$x[posPointFinal],col="red")
-        	#cat(posPointFinal)
-        	#cat("\t")
-        	#cat(length(pp$x))
-        	#cat("\n")
-      }		
+    
+    #plot(bmdValues,accumulated,log="x")
+    
+    bmdValuesLOG = as.numeric(log(bmdValues,10))
+    
+    if(dfreedom>length(bmdValuesLOG)){
+      dfreedom=round(2*(length(bmdValuesLOG)/3))
       
-      # If values ends up being 1, it means no intersection was ever found because the unity line was under the curve
-      if(firstIntersection==1){
-        posPointFinal=-1
-      }else{
-      
-        posPointFinal = firstIntersection
-      
-        pp$x = ppOriginal$x[1:posPointFinal]
-        pp$y = ppOriginal$y[1:posPointFinal]
-  
-      }      
+    }else{
+      dfreedom=min(max(round(length(bmdValuesLOG)/10),20),40)
     }
     
-  }else{
-    posPointFinal=-1
+    
+    pp = performSmoothing(as.numeric(bmdValuesLOG),accumulated,dfreedom,choiceSmoothing=choiceSmoothing,scam.m=scam.m)
+    
+    #plot(pp)
+    #points(pp$x,pp$y,col="yellow")	
+    #points(log(bmdValues,10),accumulated,col="red")
+    #plot(log(bmdValues,10),accumulated,col="red")
+    #plot(bmdValues,accumulated,log="x")
+    
+    mask = pp$x<=log(limit_curve_up,10)
+    pp$x = pp$x[mask]
+    pp$y = pp$y[mask]
+    
+    mask=pp$y<pp$y[1]
+    pp$y[mask] = pp$y[1]
+    
+    ppOriginal = pp
+    
+    # Finding intersection between the initial point and the limited portion of the curve
+    if(length(pp$y)>0){
+      posPointFinal = findIntersectionLine(pp$x,pp$y)
+      firstIntersection = posPointFinal
+      # If it is the end of the curve (second IF condition. Then no need to further test)
+      if((posPointFinal!=-1)&(posPointFinal!=length(pp$x))){
+        # Limiting the size of the curve of 5 to look for intersection
+        while(firstIntersection<length(pp$x)&length(pp$x)>5){
+          pp$x = pp$x[1:(length(pp$x)-1)]
+          pp$y = pp$y[1:(length(pp$y)-1)]
+          posPointFinal = findIntersectionLine(pp$x,pp$y)
+          if(posPointFinal>firstIntersection){
+            firstIntersection = posPointFinal
+          }
+          #abline(v=pp$x[length(pp$x)],col="red")
+          #abline(v=pp$x[posPointFinal],col="red")
+          #cat(posPointFinal)
+          #cat("\t")
+          #cat(length(pp$x))
+          #cat("\n")
+        }		
+        
+        # If values ends up being 1, it means no intersection was ever found because the unity line was under the curve
+        if(firstIntersection==1){
+          posPointFinal=-1
+        }else{
+          
+          posPointFinal = firstIntersection
+          
+          pp$x = ppOriginal$x[1:posPointFinal]
+          pp$y = ppOriginal$y[1:posPointFinal]
+          
+        }      
+      }
+      
+    }else{
+      posPointFinal=-1
+    }
+    
+    
+    
+    if(posPointFinal==-1){
+      return(-1)
+    } else{
+      return(pp)
+    } 
+    
+    
   }
   
-  
-  
-  if(posPointFinal==-1){
-    return(-1)
-  } else{
-    return(pp)
-  } 
 } 
 
 
@@ -571,8 +605,17 @@ getMaximumCurvaturePoints = function(bmdValues,accumulated,limit_curve_up, start
   originalBmdValues = bmdValues
   originalAccumulated = accumulated
   
+  # We need to know the length after limiting the curve by the provided threshold
+  if(length(bmdValues[bmdValues<=limit_curve_up])<5){
+    return(NA)
+  }
+  else{
     pp=getSmoothedCurve(bmdValues,accumulated,limit_curve_up,startPos,choiceSmoothing,dfreedom,scam.m)
-    
+
+    #plot(bmdValues,accumulated,log="x")
+    #points(10^pp$x,pp$y,col="yellow")
+    #plot(pp)
+        
     #if pp is equal to -1, we were not able to smooth the line
     if(length(pp)==1){
       elbow=NA
@@ -594,7 +637,8 @@ getMaximumCurvaturePoints = function(bmdValues,accumulated,limit_curve_up, start
 
   return(elbows)
   
-  
+  }
+    
 }
 
 
@@ -635,8 +679,9 @@ runPODAccMethod = function(list_bmd_values){
     elbow = NA
   }
   
-  if(is.na(elbow)){
+  if((is.na(elbow)&(length(bmd_Values_acc)>=5))){
     elbow = median(bmdValues[1:2])
+    all_elbows = elbow
   }
   
   
@@ -675,3 +720,4 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   legend(x="bottomright",legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
   
 }
+
