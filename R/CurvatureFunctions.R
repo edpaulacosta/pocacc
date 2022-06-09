@@ -706,7 +706,7 @@ runPODAccMethod = function(list_bmd_values){
 #' @export
 plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plot Results",xlab_text = "Dose (mg/kg/day)",ylab_text = "Accumulation",legend_pos="right",legend_rel_pos="outside"){
   
-  # Get accumulation plot values
+  # Get accumulation plot values from list of bmd values
   output = generateAccumulationValuesFromListBMDValues(list_bmd_values)
   bmd_Values_acc = output[,1]
   accumulated = output[,2]
