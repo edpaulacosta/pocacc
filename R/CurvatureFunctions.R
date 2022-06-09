@@ -704,7 +704,7 @@ runPODAccMethod = function(list_bmd_values){
 
 
 #' @export
-plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plot Results",xlab_text = "Dose (mg/kg/day)",ylab_text = "Accumulation",legend_pos="outside"){
+plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plot Results",xlab_text = "Dose (mg/kg/day)",ylab_text = "Accumulation",legend_pos="right",legend_rel_pos="outside"){
   
   # Get accumulation plot values
   output = generateAccumulationValuesFromListBMDValues(list_bmd_values)
@@ -712,7 +712,7 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   accumulated = output[,2]
   
   
-  if(legend_pos=="outside"){
+  if(legend_rel_pos=="outside"){
     par(mar = c(5,4,1.4,8))
   }
   
@@ -736,20 +736,16 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   }
   abline(v=results$podacc,col="green", lwd=3)
   
-  if(legend_pos=="outside"){
+  if(legend_rel_pos=="outside"){
     opar = par(fig=c(0,1,0,1),oma=c(0,0,0,0),mar=c(0,0,0,0),new=TRUE)
     on.exit(par(opar))
     plot(0,0,type='n',bty='n',xaxt='n',yaxt='n')
     
-    legend(x="center",legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
-    
-    
-  }else{
-    
-    legend(x=legend_pos,legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
-    
     
     
   }
+  
+  legend(x=legend_pos,legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
+  
   
 }
