@@ -1,6 +1,7 @@
 
 
 
+
 #' @export
 invertFunction <- function(x,y){
 
@@ -43,7 +44,7 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 
 	knee = NA
 
-	library(reticulate)
+	#library(reticulate)
 
 	originalX = x
 	originalY = y
@@ -75,7 +76,7 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 	x_difference = x_normalized
 
 
-	np = reticulate::import("numpy")
+	#np = reticulate::import("numpy")
 	#ss = reticulate::import("scipy.signal")
 	#YDiff = np$array(y_difference)
 	#maxima_indices = ss$argrelextrema(YDiff, np$greater)[[1]]
@@ -111,13 +112,18 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 	# Sensitivity parameter S
 	# smaller values detect knees quicker
 	
-	Tmx = abs(y_difference_maxima) - (S * np$abs(np$mean(np$diff(x_normalized))))
 	
-
+	
+	#Tmx = abs(y_difference_maxima) - (S * np$abs(np$mean(np$diff(x_normalized))))
+	Tmx = abs(y_difference_maxima) - (S * abs(mean(diff(x_normalized))))
+	
 	# artificially place a local max at the last item in the x_difference array
-	maxima_indices = np$append(maxima_indices, length(x_difference))
-	minima_indices = np$append(minima_indices, length(x_difference))
-
+	#maxima_indices = np$append(maxima_indices, length(x_difference))
+	maxima_indices = c(maxima_indices, length(x_difference))
+	
+	#minima_indices = np$append(minima_indices, length(x_difference))
+	minima_indices = c(minima_indices, length(x_difference))
+	
 	# placeholder for which threshold region i is located in.
 	maxima_threshold_index = 1
 	minima_threshold_index = 1
@@ -373,11 +379,15 @@ findIntersectionLine <- function(x,y){
 #' @export
 chooseSmoothing = function(bmdValuesLOG,accumulated){ 
 
-  library(reticulate)
-  np = reticulate::import("numpy")
+  #library(reticulate)
+  #np = reticulate::import("numpy")
   
 	pp=smooth.spline(as.numeric(bmdValuesLOG),as.numeric(accumulated),all.knots=TRUE,df=20)
-	intervalX = np$abs(np$mean(np$diff(bmdValuesLOG)))
+
+	#intervalX = np$abs(np$mean(np$diff(bmdValuesLOG)))
+	intervalX = abs(mean(diff(bmdValuesLOG)))
+	
+	
 	newBmdValuesLOG = seq(from = min(bmdValuesLOG), to = max(bmdValuesLOG), by = intervalX/10)
 	newY = predict(pp,x=newBmdValuesLOG)
 
@@ -419,7 +429,7 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 
 	library("scam")
 
-	np = reticulate::import("numpy")
+	#np = reticulate::import("numpy")
 
 	if(length(bmdValuesLOG)<10){
 	  choiceSmoothing = "NO"
@@ -429,7 +439,7 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 		choiceSmoothing = chooseSmoothing(bmdValuesLOG,accumulated)
 	}
 
-	intervalX = np$abs(np$mean(np$diff(bmdValuesLOG)))
+	intervalX = abs(mean(diff(bmdValuesLOG)))
 	if(intervalX>0.002374724){
 		intervalX=0.002374724
 	}
@@ -694,7 +704,7 @@ runPODAccMethod = function(list_bmd_values){
 
 
 #' @export
-plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plot Results",xlab_text = "Dose (mg/kg/day)",ylab_text = "Accumulation"){
+plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plot Results",xlab_text = "Dose (mg/kg/day)",ylab_text = "Accumulation",legend_pos="outside"){
   
   # Get accumulation plot values
   output = generateAccumulationValuesFromListBMDValues(list_bmd_values)
@@ -702,7 +712,16 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   accumulated = output[,2]
   
   
-  plot(bmd_Values_acc,accumulated,log="x",main=titleplot,xlab=xlab_text,ylab=ylab_text)
+  if(legend_pos=="outside"){
+    par(mar = c(5,4,1.4,8))
+  }
+  
+  plot(bmd_Values_acc,accumulated,log="x",main=titleplot,xlab=xlab_text,ylab=ylab_text)  
+  
+    
+  
+  
+  
   
   # Get accumulation plot values
   output = generateAccumulationValuesFromListBMDValues(list_bmd_values)
@@ -717,7 +736,20 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   }
   abline(v=results$podacc,col="green", lwd=3)
   
-  legend(x="bottomright",legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
+  if(legend_pos=="outside"){
+    opar = par(fig=c(0,1,0,1),oma=c(0,0,0,0),mar=c(0,0,0,0),new=TRUE)
+    on.exit(par(opar))
+    plot(0,0,type='n',bty='n',xaxt='n',yaxt='n')
+    
+    legend(x="center",legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
+    
+    
+  }else{
+    
+    legend(x=legend_pos,legend=c("First Mode","Antimode",expression("POD"[Accum])),fill=c("red","blue","green"))
+    
+    
+    
+  }
   
 }
-
