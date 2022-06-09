@@ -1,5 +1,5 @@
 
-
+# Curvature functions
 
 
 #' @export
