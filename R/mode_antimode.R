@@ -12,7 +12,11 @@ mode.antimode<-function (x, min.size = 0.1, bw="nrd0", min.bw=NULL)
     return(list(modes = NA, mode.dens = NA, size = 1))
   
   #density function
-  dens<-density(x,bw=bw)
+  dens<-try(density(x,bw=bw))
+  if(length(dens)==1){
+    bw="nrd0"
+    dens<-density(x,bw=bw)
+  }
   if(!is.null(min.bw)){
     if(dens$bw < min.bw){
       dens<-density(x,bw=min.bw)
@@ -153,7 +157,3 @@ returnAntimode = function(bmdValues,min_dense=0.05,min_bw=0,bwFun="SJ",printHist
 	return(c(firstMode,firstAntiMode))
 
 }
-
-
-
-
