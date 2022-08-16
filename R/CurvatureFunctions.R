@@ -1,5 +1,4 @@
 
-# Curvature functions
 
 
 #' @export
@@ -66,6 +65,11 @@ returnArrayKnees <- function(x,y,S=1,curve = 'concave',direction = 'increasing')
 	#plot(x_normalized,y_normalized)
 
 	# the difference curve (add 1 so that it is never negative)
+	# Added this line
+	if(length(mDiff)==0){
+	  return(NA)
+	}
+	
 	if(mDiff>0){
 		y_difference = x_normalized-y_normalized 
 	
@@ -280,6 +284,12 @@ findElbow <- function(bmdValues,accumulated,Log=TRUE,S=1){
 
 
 
+
+
+
+
+
+
 #' @export
 findIntersectionLine <- function(x,y){
 
@@ -440,9 +450,11 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 	}
 
 	intervalX = abs(mean(diff(bmdValuesLOG)))
-	if(intervalX>0.002374724){
-		intervalX=0.002374724
+	if(intervalX>0.02374724){
+		intervalX=0.02374724
 	}
+	
+
 	newBmdValuesLOG = seq(from = min(bmdValuesLOG), to = max(bmdValuesLOG), by = intervalX)
 
 	if(choiceSmoothing=="NO"){
@@ -513,12 +525,75 @@ performSmoothing = function(bmdValuesLOG,accumulated,dfreedom,choiceSmoothing=""
 }
 
 
+#' @export
+extrapolateDots = function(bmdValuesLOG,accumulated){
+  
+  intervals_x = diff(bmdValuesLOG)
+  
+  if(max(intervals_x)/median(intervals_x)>5){
+    
+    index_max = which.max(intervals_x)
+    
+    new_bmd = (bmdValuesLOG[index_max+1]+bmdValuesLOG[index_max])/2
+    new_accumulated = (accumulated[index_max+1]+accumulated[index_max])/2
+    
+    bmdValuesLOG = c(bmdValuesLOG,new_bmd)
+    accumulated = c(accumulated,new_accumulated)
+    
+    accumulated = accumulated[order(bmdValuesLOG)]
+    bmdValuesLOG = sort(bmdValuesLOG)
+    
+    output = extrapolateDots(bmdValuesLOG,accumulated)
+    bmdValuesLOG = output[,1]
+    accumulated = output[,2]
+  
+  }
+  
+  #plot(bmdValuesLOG,accumulated)
+  
+  return(cbind(bmdValuesLOG,accumulated))
+  
+}
+
+#' @export
+extrapolateDotsUpToLength = function(bmdValuesLOG,accumulated,length=40){
+  
+  if(length(bmdValuesLOG)<length){
+    
+    intervals_x = diff(bmdValuesLOG)
+    
+    index_max = which.max(intervals_x)
+      
+    new_bmd = (bmdValuesLOG[index_max+1]+bmdValuesLOG[index_max])/2
+    new_accumulated = (accumulated[index_max+1]+accumulated[index_max])/2
+      
+    bmdValuesLOG = c(bmdValuesLOG,new_bmd)
+    accumulated = c(accumulated,new_accumulated)
+      
+    accumulated = accumulated[order(bmdValuesLOG)]
+    bmdValuesLOG = sort(bmdValuesLOG)
+      
+    output = extrapolateDotsUpToLength(bmdValuesLOG,accumulated,length)
+    bmdValuesLOG = output[,1]
+    accumulated = output[,2]
+      
+    
+  }
+  
+  #plot(bmdValuesLOG,accumulated)
+  
+  return(cbind(bmdValuesLOG,accumulated))
+  
+}
+
 
 #' @export
 getSmoothedCurve = function(bmdValues,accumulated,limit_curve_up,startPos=1,choiceSmoothing="pp",dfreedom=20,scam.m=2){
   
   bmdValues = bmdValues[startPos:length(bmdValues)]
   accumulated = accumulated[startPos:length(accumulated)]
+  
+  accumulated_original = accumulated
   
   if(length(bmdValues[bmdValues<=limit_curve_up])<5){
     return(NA)
@@ -527,6 +602,17 @@ getSmoothedCurve = function(bmdValues,accumulated,limit_curve_up,startPos=1,choi
     #plot(bmdValues,accumulated,log="x")
     
     bmdValuesLOG = as.numeric(log(bmdValues,10))
+    
+    # extrapolate dots to allow smoothing for extreme datasets
+    output = extrapolateDots(bmdValuesLOG,accumulated)
+    bmdValuesLOG = output[,1]
+    accumulated = output[,2]
+    #plot(bmdValuesLOG,accumulated)
+    
+    output = extrapolateDotsUpToLength(bmdValuesLOG,accumulated,length=40)
+    bmdValuesLOG = output[,1]
+    accumulated = output[,2]
+    
     
     if(dfreedom>length(bmdValuesLOG)){
       dfreedom=round(2*(length(bmdValuesLOG)/3))
@@ -538,9 +624,11 @@ getSmoothedCurve = function(bmdValues,accumulated,limit_curve_up,startPos=1,choi
     
     pp = performSmoothing(as.numeric(bmdValuesLOG),accumulated,dfreedom,choiceSmoothing=choiceSmoothing,scam.m=scam.m)
     
+    #pp = performSmoothing(as.numeric(bmdValuesLOG),accumulated,dfreedom,choiceSmoothing="pp",scam.m=scam.m)
+    
     #plot(pp)
     #points(pp$x,pp$y,col="yellow")	
-    #points(log(bmdValues,10),accumulated,col="red")
+    #points(log(bmdValues,10),accumulated_original,col="red")
     #plot(log(bmdValues,10),accumulated,col="red")
     #plot(bmdValues,accumulated,log="x")
     
@@ -592,6 +680,8 @@ getSmoothedCurve = function(bmdValues,accumulated,limit_curve_up,startPos=1,choi
       posPointFinal=-1
     }
     
+    
+    length(pp$y)
     
     
     if(posPointFinal==-1){
@@ -706,7 +796,7 @@ runPODAccMethod = function(list_bmd_values){
 #' @export
 plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plot Results",xlab_text = "Dose (mg/kg/day)",ylab_text = "Accumulation",legend_pos="right",legend_rel_pos="outside"){
   
-  # Get accumulation plot values from list of bmd values
+  # Get accumulation plot values
   output = generateAccumulationValuesFromListBMDValues(list_bmd_values)
   bmd_Values_acc = output[,1]
   accumulated = output[,2]
@@ -749,3 +839,4 @@ plotPODAccResults = function(list_bmd_values,results,titleplot="Accumulation Plo
   
   
 }
+
