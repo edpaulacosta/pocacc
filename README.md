@@ -9,6 +9,7 @@ You might need to install the package devtools if that is not installed yet.
  
 The following commands are an example of how to run the method, using a dataset loaded into the package.
  
+# Code lines to run the method and visualize results 
 library("podacc")
 data = amiodarone_tggates_29day_BMD
 head(data)
